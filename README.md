@@ -4,10 +4,10 @@ Welcome to the Federal AI Services Demonstration repository! This project showca
 Overview
 This repository serves as a demonstration platform for building secure and compliant AI applications. It provides examples and best practices for implementing AI solutions that adhere to security best practices.
 
-Features
-FedRAMP High: Provides guidelines and examples for achieving FedRAMP High compliance.
-Azure OpenAI Integration: Utilizes Azure OpenAI with GPT-4 chat completions as the first, upcoming endpoint. 
-Security Best Practices: Includes security measures and reporting processes to ensure the safety and integrity of the AI applications.
+Features:
+* FedRAMP High: Provides guidelines and examples for achieving FedRAMP High compliance.
+* Azure OpenAI Integration: Utilizes Azure OpenAI with GPT-4 chat completions as the first, upcoming endpoint. 
+* Security Best Practices: Includes security measures and reporting processes to ensure the safety and integrity of the AI applications.
 
 ## TO DO: 
 * Scaffold Azure Functions Project
