@@ -1,5 +1,5 @@
-# AI API Platform Demonstration
-Welcome to the AI API Platform Demonstration repository! This project showcases how to implement NIST-compliant and FedRAMP High AI solutions using Azure AI Services. 
+# Federal AI Services
+Welcome to the Federal AI Services Demonstration repository! This project showcases how to implement NIST-compliant and FedRAMP High AI solutions using Azure AI Services. 
 
 Overview
 This repository serves as a demonstration platform for building secure and compliant AI applications. It provides examples and best practices for implementing AI solutions that adhere to NIST standards and FedRAMP High requirements.
