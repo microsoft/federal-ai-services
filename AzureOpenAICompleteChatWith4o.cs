@@ -29,6 +29,8 @@ namespace Microsoft.Function
         class Question 
         {
             public string question { get; set; }
+
+            public string systemMessage {get; set;}
         }
 
        
@@ -52,16 +54,11 @@ namespace Microsoft.Function
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             string userQuestion = data.question;
-            Console.WriteLine($"User question: {userQuestion}");
-
-            _logger.LogInformation($"Request body: {data}");
-            Console.WriteLine($"Request body: {data}");
+            string systemMessage = data.systemMessage;
 
             ChatCompletion completion = chatClient.CompleteChat(
                 [
-                // System messages represent instructions or other guidance about how the assistant should behave
-                new SystemChatMessage("You are a helpful assistant that answers questions."),
-                // User messages represent user input, whether historical or the most recen tinput
+                new SystemChatMessage(systemMessage),
                 new UserChatMessage(userQuestion),
             ]);
 
