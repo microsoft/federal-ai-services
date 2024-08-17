@@ -11,13 +11,28 @@ Features:
 
 Completed: 
 * Scaffold Azure Function Project
+* Implement Azure OpenAI Endpoint Boilerplate
 
 WIP: 
-* Implement AzureOpenAI Endpoint with content safety and input sanitization
+* Add content safety to Azure OpenAI Endpoint
 
 TO DO: 
+* Add input sanitization to Azure OpenAI Endpoint
 * Implement a RAG Endpoint with data governance
-* More AI Integrations! 
+* More AI Integrations!
+
+Running locally: 
+* Prerequisites:
+  *  [VS Code](https://code.visualstudio.com/download)
+  *  An [Azure account](https://azure.microsoft.com/free/?ref=microsoft.com&utm_source=microsoft.com&utm_medium=docs&utm_campaign=visualstudio) with an active subscription.
+  *  An [Azure OpenAI Resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
+  *  [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+  *  [C# extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for Visual Studio Code.
+  *  [Azure Functions extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for Visual Studio Code.
+*  Clone the repository
+*  Create a local.settings.json file that contains the values that align to the properties in the example.local.settings.json
+*  Navigate to the root of the repository from your terminal
+*  Run `func host start` from your terminal
 
 ## Contributing
 
