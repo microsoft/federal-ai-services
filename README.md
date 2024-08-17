@@ -1,13 +1,14 @@
 # Federal AI Services
-Welcome to the Federal AI Services Demonstration repository! This project showcases how to implement FedRAMP High AI solutions using Azure AI Services. 
+Welcome to the Federal AI Services Demonstration repository! This project showcases how to implement Secure AI solutions with Azure Resources. 
 
 Overview:
 This repository serves as a demonstration platform for building secure and compliant AI applications. It provides examples and best practices for implementing AI solutions that adhere to security best practices.
 
 Features:
-* FedRAMP High: Provides guidelines and examples for achieving FedRAMP High compliance.
+* Pervasive Security: Includes security measures and processes to ensure the safety and integrity of the AI applications.
 * Azure OpenAI Integration: Utilizes Azure OpenAI with GPT-4 chat completions as the first, upcoming endpoint. 
-* Security Best Practices: Includes security measures and reporting processes to ensure the safety and integrity of the AI applications.
+* RAG Applications: Leverages Azure AI Search with Azure OpenAI to implement RAG as a Service.
+* Azure AI Services: Integrates with Azure AI Services such as AI Language, Document Intelligence, Image Classification, and more! 
 
 Completed: 
 * Scaffold Azure Function Project
@@ -18,6 +19,8 @@ WIP:
 
 TO DO: 
 * Add input sanitization to Azure OpenAI Endpoint
+* Implement MSAL Authentication flow
+* Implement ABAC Authorization flow
 * Implement a RAG Endpoint with data governance
 * More AI Integrations!
 
