@@ -29,6 +29,7 @@ Running locally:
   *  [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
   *  [C# extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for Visual Studio Code.
   *  [Azure Functions extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) for Visual Studio Code.
+  *  [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Cisolated-process%2Cnode-v4%2Cpython-v2%2Chttp-trigger%2Ccontainer-apps&pivots=programming-language-csharp#install-the-azure-functions-core-tools)
 *  Clone the repository
 *  Create a local.settings.json file that contains the values that align to the properties in the example.local.settings.json
 *  Navigate to the root of the repository from your terminal
