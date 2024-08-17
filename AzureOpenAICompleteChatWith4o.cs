@@ -4,7 +4,6 @@ using System.Net;
 using System.Threading.Tasks;
 using Azure;
 using Azure.AI.OpenAI;
-using Azure.Identity;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
@@ -27,12 +26,18 @@ namespace Microsoft.Function
             _logger = log;
         }
 
+        class Question 
+        {
+            public string question { get; set; }
+        }
+
+       
         [FunctionName("AzureOpenAICompleteChatWith4o")]
-        [OpenApiOperation(operationId: "Run", tags: new[] { "name" })]
-        [OpenApiParameter(name: "name", In = ParameterLocation.Query, Required = true, Type = typeof(string), Description = "The **Name** parameter")]
+        [OpenApiOperation(operationId: "Run", tags: new[] { "Get Chat Completion with GPT 4o" })]
+        [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(Question), Description = "Question for GPT", Required = true)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         public async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
         {
             _logger.LogInformation("C# HTTP trigger function processed a request.");
             string keyFromEnvironment = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
@@ -44,15 +49,20 @@ namespace Microsoft.Function
             new AzureKeyCredential(keyFromEnvironment));
             ChatClient chatClient = azureClient.GetChatClient(modelFromEnvironment);
 
+            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            dynamic data = JsonConvert.DeserializeObject(requestBody);
+            string userQuestion = data.question;
+            Console.WriteLine($"User question: {userQuestion}");
+
+            _logger.LogInformation($"Request body: {data}");
+            Console.WriteLine($"Request body: {data}");
+
             ChatCompletion completion = chatClient.CompleteChat(
                 [
                 // System messages represent instructions or other guidance about how the assistant should behave
-                new SystemChatMessage("You are a helpful assistant that talks like a pirate."),
+                new SystemChatMessage("You are a helpful assistant that answers questions."),
                 // User messages represent user input, whether historical or the most recen tinput
-                new UserChatMessage("Hi, can you help me?"),
-                // Assistant messages in a request represent conversation history for responses
-                new AssistantChatMessage("Arrr! Of course, me hearty! What can I do for ye?"),
-                new UserChatMessage("What's the best way to train a parrot?"),
+                new UserChatMessage(userQuestion),
             ]);
 
             Console.WriteLine($"{completion.Role}: {completion.Content[0].Text}");
