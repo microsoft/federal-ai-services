@@ -12,6 +12,10 @@ using Azure.AI.DocumentIntelligence;
 using Azure;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Collections.Generic;
+using Microsoft.DeepDev;
 
 namespace Microsoft.Function
 {
@@ -19,24 +23,23 @@ namespace Microsoft.Function
     {
         class WebSource
         {
-            public string webpageUrl { get; set; }
+            public List<string> webpageUrls { get; set; }
         }
 
         [FunctionName("CreateJsonlForFineTuning")]
         [OpenApiOperation(operationId: "Run", tags: new[] { "Format data for fine tuning" })]
-        [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(WebSource), Description = "Webpage with data", Required = true)]
+        [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(WebSource), Description = "Webpages with data", Required = true)]
         [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "text/plain", bodyType: typeof(string), Description = "The OK response")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            string url = data?.webpageUrl;
+            WebSource data = JsonConvert.DeserializeObject<WebSource>(requestBody);
 
-            if (string.IsNullOrEmpty(url))
+            if (data?.webpageUrls == null || !data.webpageUrls.Any())
             {
-                return new BadRequestObjectResult("Please pass a URL in the request body");
+                return new BadRequestObjectResult("Please pass an array of URLs in the request body");
             }
 
             string keyFromEnvironment = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_API_KEY");
@@ -45,38 +48,112 @@ namespace Microsoft.Function
             AzureKeyCredential credential = new AzureKeyCredential(keyFromEnvironment);
             DocumentIntelligenceClient client = new DocumentIntelligenceClient(new Uri(endpointFromEnvironment), credential);
 
-            Uri fileUri = new Uri(url);
+            List<dynamic> jsonlData = new List<dynamic>();
 
-            AnalyzeDocumentContent content = new AnalyzeDocumentContent()
+            foreach (string url in data.webpageUrls)
             {
-                UrlSource = fileUri
-            };
+                Console.WriteLine($"Analyzing document at URL: {url}");
+                Uri fileUri = new Uri(url);
 
-            Operation<AnalyzeResult> operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", content);
+                AnalyzeDocumentContent content = new AnalyzeDocumentContent()
+                {
+                    UrlSource = fileUri
+                };
 
-            AnalyzeResult result = operation.Value;
+                Operation<AnalyzeResult> operation = await client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-layout", content);
 
-            string combinedContent = string.Join(" ", result.Paragraphs
-            .Select(paragraph => paragraph.Content));
+                AnalyzeResult result = operation.Value;
 
-            var jsonlData = new[]
-            {
-                new
+                string combinedContent = string.Join(" ", result.Paragraphs
+                    .Select(paragraph => paragraph.Content));
+
+                var jsonObject = new
                 {
                     messages = new[]
                     {
-                        new { role = "system", content = "You are an expert in NASA Apollo missions" },
-                        new { role = "user", content = "Please provide information from the documents." },
+                        new { role = "system", content = "You are an expert in NASA Apollo missions, specifically the design and success of heat shields, as well as environmental safety for crew members." },
+                        new { role = "user", content = "Provide accurate answers based on Apollo Mission records." },
                         new { role = "assistant", content = combinedContent }
                     }
+                };
+
+                // Shorten the JSON object if it exceeds the token limit
+                string jsonString = JsonConvert.SerializeObject(jsonObject);
+                var tokenizer = await TokenizerBuilder.CreateByModelNameAsync("gpt-4");
+                var tokens = tokenizer.Encode(jsonString, Array.Empty<string>());
+
+                Console.WriteLine($"Current Token count: {tokens.Count}");
+
+                while (tokens.Count > 131072)
+                {
+                    Console.WriteLine($"Token count - Too Many: {tokens.Count}");
+                    // Shorten the content to fit within the token limit
+                    int excessTokens = tokens.Count - 131072;
+                    int charsToRemove = (int)(excessTokens * 0.5); // Adjust this factor as needed
+                    combinedContent = combinedContent.Substring(0, combinedContent.Length - charsToRemove);
+
+                    jsonObject = new
+                    {
+                        messages = new[]
+                        {
+                            new { role = "system", content = "You are an expert in NASA Apollo missions, specifically the design and success of heat shields, as well as environmental safety for crew members." },
+                            new { role = "user", content = "Provide accurate answers based on Apollo Mission records." },
+                            new { role = "assistant", content = combinedContent }
+                        }
+                    };
+
+                    jsonString = JsonConvert.SerializeObject(jsonObject);
+                    tokens = tokenizer.Encode(jsonString, Array.Empty<string>());
                 }
-            };
+
+                jsonlData.Add(jsonObject);
+                Console.WriteLine($"Completed document analysis for URL: {url}");
+            }
 
             string jsonlOutput = string.Join("\n", jsonlData.Select(JsonConvert.SerializeObject));
 
-            Console.WriteLine(jsonlOutput);
+            // Use a sanitized version of the first URL as the file name
+            string title = new string(data.webpageUrls.First().Where(char.IsLetterOrDigit).ToArray());
+            string localFilePath = Path.Combine(Path.GetTempPath(), $"{title}.jsonl");
 
-            return new OkObjectResult(jsonlOutput);
+            // Write the JSONL output to a local file
+            await File.WriteAllTextAsync(localFilePath, jsonlOutput);
+
+            // Upload the JSONL file to Azure OpenAI files system
+            string openaiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT_FINETUNING");
+            string openaiApiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY_FINETUNING");
+            string apiVersion = "2024-07-01-preview";
+
+            HttpClient httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("api-key", openaiApiKey);
+
+            MultipartFormDataContent formDataContent = new MultipartFormDataContent
+            {
+                { new StringContent("fine-tune"), "purpose" }
+            };
+
+            var fileContent = new StreamContent(File.OpenRead(localFilePath));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            formDataContent.Add(fileContent, "file", $"{title}.jsonl");
+
+            HttpResponseMessage response = await httpClient.PostAsync($"{openaiEndpoint}/openai/files?api-version={apiVersion}", formDataContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new BadRequestObjectResult($"Failed to upload file to Azure OpenAI: {response}, status code: {response.StatusCode}, error: {await response.Content.ReadAsStringAsync()}");
+            }
+
+            string responseContent = await response.Content.ReadAsStringAsync();
+
+            // Dispose resources
+            formDataContent.Dispose();
+            httpClient.Dispose();
+
+            // Optionally, delete the local file after upload
+            File.Delete(localFilePath);
+
+            Console.WriteLine(jsonlOutput);
+            return new OkObjectResult($"File uploaded to Azure OpenAI successfully: {responseContent}");
         }
     }
 }
